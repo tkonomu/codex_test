@@ -1,10 +1,23 @@
 body {
     font-family: sans-serif;
     text-align: center;
+    position: relative;
 }
 
 canvas {
     background: #000;
     display: block;
     margin: 0 auto;
+}
+
+#next {
+    margin-top: 10px;
+    border: 1px solid #555;
+}
+
+#shark {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    image-rendering: pixelated;
 }

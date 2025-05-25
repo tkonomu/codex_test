@@ -2,6 +2,43 @@ const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
 context.scale(20, 20);
 
+const nextCanvas = document.getElementById('next');
+const nextContext = nextCanvas.getContext('2d');
+nextContext.scale(20, 20);
+
+const sharkCanvas = document.getElementById('shark');
+const sharkContext = sharkCanvas.getContext('2d');
+sharkContext.scale(5, 5);
+sharkContext.imageSmoothingEnabled = false;
+
+const sharkPixels = [
+    [0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0],
+    [0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+    [0,0,1,1,1,1,2,1,1,1,1,0,0,0,0,0],
+    [0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+    [0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0],
+    [0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0],
+];
+
+function drawShark() {
+    sharkContext.fillStyle = '#000';
+    sharkContext.fillRect(0, 0, sharkCanvas.width, sharkCanvas.height);
+    sharkPixels.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value === 1) {
+                sharkContext.fillStyle = '#7f7f7f';
+            } else if (value === 2) {
+                sharkContext.fillStyle = '#ffffff';
+            } else {
+                return;
+            }
+            sharkContext.fillRect(x, y, 1, 1);
+        });
+    });
+}
+
 function arenaSweep() {
     let rowCount = 1;
     outer: for (let y = arena.length - 1; y >= 0; --y) {
@@ -89,14 +126,14 @@ function createPiece(type) {
     }
 }
 
-function drawMatrix(matrix, offset) {
+function drawMatrix(matrix, offset, ctx = context) {
     matrix.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value !== 0) {
-                context.fillStyle = colors[value];
-                context.fillRect(x + offset.x,
-                                 y + offset.y,
-                                 1, 1);
+                ctx.fillStyle = colors[value];
+                ctx.fillRect(x + offset.x,
+                             y + offset.y,
+                             1, 1);
             }
         });
     });
@@ -108,6 +145,14 @@ function draw() {
 
     drawMatrix(arena, {x:0, y:0});
     drawMatrix(player.matrix, player.pos);
+}
+
+function drawNext() {
+    nextContext.fillStyle = '#000';
+    nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+    if (nextMatrix) {
+        drawMatrix(nextMatrix, {x:1, y:1}, nextContext);
+    }
 }
 
 function merge(arena, player) {
@@ -155,7 +200,13 @@ function playerMove(dir) {
 
 function playerReset() {
     const pieces = 'TJLOSZI';
-    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+    if (nextMatrix === null) {
+        player.matrix = createPiece(pieces[Math.random() * pieces.length | 0]);
+        nextMatrix = createPiece(pieces[Math.random() * pieces.length | 0]);
+    } else {
+        player.matrix = nextMatrix;
+        nextMatrix = createPiece(pieces[Math.random() * pieces.length | 0]);
+    }
     player.pos.y = 0;
     player.pos.x = (arena[0].length / 2 | 0) -
                    (player.matrix[0].length / 2 | 0);
@@ -164,6 +215,7 @@ function playerReset() {
         player.score = 0;
         updateScore();
     }
+    drawNext();
 }
 
 function playerRotate(dir) {
@@ -213,13 +265,15 @@ const colors = [
     '#3877FF',
 ];
 
-const arena = createMatrix(12, 20);
+const arena = createMatrix(10, 20);
 
 const player = {
     pos: {x: 0, y: 0},
     matrix: null,
     score: 0,
 };
+
+let nextMatrix = null;
 
 document.addEventListener('keydown', event => {
     if (event.keyCode === 37) {
@@ -237,4 +291,5 @@ document.addEventListener('keydown', event => {
 
 playerReset();
 updateScore();
+drawShark();
 update();
