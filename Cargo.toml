@@ -1,0 +1,8 @@
+[package]
+name = "analog-dirty-video"
+version = "0.1.0"
+edition = "2021"
+description = "CLI for adding gritty analog concert-style effects to MP4 videos"
+license = "MIT"
+
+[dependencies]
