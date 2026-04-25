@@ -1,67 +1,44 @@
 # analog-dirty-video
 
-MP4動画に、ライブ映像っぽい「荒れたアナログ感（強めの粒子・赤寄り・ハイライトのにじみ・色ズレ）」をかけるCLIツールです。
+## 方針変更: iOSアプリ化
 
-実処理は `ffmpeg` のフィルタグラフで行い、このRust CLIは以下を担当します。
+「PCで変換が面倒」という要望に合わせて、iPhone上で完結する実装方針を追加しました。
+このリポジトリには、Core Image + AVFoundation を使った iOS 実装のたたき台を含めています（`ios/AnalogDirtyVideo`）。
 
-- プリセット管理（mild / heavy / brutal）
-- パラメータ上書き
-- 入出力バリデーション
-- 再現可能なコマンド実行
+> 結論: **iPhone 16 Pro なら十分現実的**です。  
+> 特に 1080p の短〜中尺は問題なく処理できる見込みです。4K長尺は時間と発熱が増えるため、品質プリセットを調整する運用が実用的です。
 
-## 必要条件
+## iOS実装（新規）
 
-- Rust (開発/ビルド時)
-- `ffmpeg`（実行時）
+- `ios/AnalogDirtyVideo/AnalogDirtyVideoApp.swift`: アプリエントリ
+- `ios/AnalogDirtyVideo/ContentView.swift`: 動画選択・プリセット選択・変換開始UI
+- `ios/AnalogDirtyVideo/VideoProcessor.swift`: AVAssetExportSession + CIFilter の処理本体
+- `ios/AnalogDirtyVideo/EffectPreset.swift`: `mild / heavy / brutal` のプリセット定義
 
-## ビルド
+### エフェクト構成
 
-```bash
-cargo build --release
-```
+1. 色調補正（彩度・コントラスト・明るさ・ガンマ）
+2. 赤青チャンネルのリフト
+3. 色収差（赤/青チャンネルを逆方向にシフト）
+4. ブラー + 合成によるハイライトのにじみ
+5. ノイズ重畳で粒状感を追加
 
-## 使い方
+## iPhone 16 Proでの実用性
 
-```bash
-cargo run --release -- \
-  --input input.mp4 \
-  --output output.mp4 \
-  --preset heavy
-```
+- **可能**: 1080p・短尺クリップのSNS用途
+- **条件付きで可能**: 4K・長尺（数分以上）は時間/発熱/電池消費が重い
+- **推奨運用**:
+  - まず `heavy` で検証
+  - 4Kで重い場合は 1080p 書き出し導線を追加
+  - 進捗表示とキャンセル導線を必ず用意
 
-### 主なオプション
+## 次に詰めたい要件
 
-- `--preset [mild|heavy|brutal]`
-- `--noise <0..100>`
-- `--bloom <0.0..1.0>`
-- `--chroma-shift <0..10>`
-- `--crf <0..51>` （小さいほど高画質）
-- `--speed <x264 preset>`
-- `--dry-run`（実行せず、ffmpegコマンドを表示）
+- 入力: 写真ライブラリのみか、Files対応も必要か
+- 出力: 写真アプリ保存だけでよいか、共有シートも必要か
+- 画質方針: 4K優先か、速度優先（1080p）か
+- 1本ずつか、バッチ処理が必要か
 
-### 例: かなり強め
+## 旧Rust CLIについて
 
-```bash
-cargo run --release -- \
-  --input input.mp4 \
-  --output dirty.mp4 \
-  --preset brutal \
-  --noise 55 \
-  --bloom 0.52 \
-  --chroma-shift 3 \
-  --crf 20 \
-  --speed fast
-```
-
-## エフェクト内容
-
-1. `eq` で彩度/コントラスト/明るさ/ガンマを調整
-2. `colorchannelmixer` で赤・青チャンネルを持ち上げ
-3. `rgbashift` で色収差（赤/青の水平ズレ）
-4. 複製→`gblur`→`screen blend` でハイライトにじみ
-5. `noise` で時間変化する粒状感を追加
-
-## 注意
-
-- 音声は `-c:a copy` でそのまま保持します。
-- 4Kや長尺は重くなるため、必要に応じて `--speed` を `faster` 側へ調整してください。
+既存のRust CLI版（ffmpeg前提）もこのブランチに残っていますが、今後はiOS実装を主軸に進める想定です。
